@@ -139,7 +139,11 @@ def main():
                 fix = suggest_fix(stderr or "Unknown error", user_input)
                 if fix:
                     print(f"Suggested fix: {fix}")
-                    os.system(fix)
+                    confirm = input("Run suggested fix? [Y/n]: ").strip().lower()
+                    if confirm in {"", "y", "yes"}:
+                        os.system(fix)
+                    else:
+                        print("Fix skipped.")
 
             save_to_history(user_input, command)
 
