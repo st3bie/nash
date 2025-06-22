@@ -4,6 +4,9 @@ from input_classifier import is_shell_command
 from command_handler import run_command
 from context_engine import retrieve_context
 from llama_api import call_llama
+import os
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
 
 load_dotenv()
 
