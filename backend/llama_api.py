@@ -11,9 +11,9 @@ def call_llama(prompt, context=""):
     system_message = {
         "role": "system",
         "content": (
-            "You are a shell assistant. Respond ONLY in valid JSON like:\n"
-            '{ "commands": ["command1", "command2"] }\n'
-            "No explanations. No markdown. Just raw JSON."
+            "You are a shell assistant. Respond only with one shell command in JSON format like:\n"
+            '{ "command": "git status" }\n'
+            "No markdown, no text, just valid JSON."
         )
     }
 
@@ -37,10 +37,9 @@ def call_llama(prompt, context=""):
         elif isinstance(content_block, str):
             raw_text = content_block
         else:
-            return [f"Unexpected content format: {content_block}"]
+            return None
 
         parsed = json.loads(raw_text)
-        return parsed["commands"]
-
+        return parsed["command"]
     except Exception as e:
-        return [f"Error parsing LLaMA output: {e}\nRaw: {response.text}"]
+        return f"Error parsing LLaMA output: {e}\nRaw: {response.text}"

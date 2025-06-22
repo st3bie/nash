@@ -45,18 +45,22 @@ def main():
             continue
 
         # ───────────────────── Natural Language ─────────────────────
-        commands = call_llama(user_input, retrieve_context(user_input))
-        print(f"\nLLM JSON Commands:\n{commands}")
+        full_context = "\n".join(session_history[-MAX_HISTORY:]) + "\n\n---\n\n" + retrieve_context(user_input)
+        command = call_llama(user_input, full_context)
 
-        if all(is_shell_command(cmd.split()[0]) for cmd in commands):
-            confirm = input("\nRun all suggested commands? [y/N] ").lower()
-            if confirm == "y":
-                for cmd in commands:
-                    print(f"\n$ {cmd}")
-                    output = run_command(cmd)
-                    print(output)
-                    session_history.append(f"USER: {cmd}\nOUTPUT: {output.strip()}")
-                    session_history[:] = session_history[-MAX_HISTORY:]
+        if not command or not is_shell_command(command.split()[0]):
+            print(f"Invalid or no command: {command}")
+            continue
+
+        print(f"\nLLM Suggested Command:\n  {command}")
+
+        confirm = input("\nRun this command? [y/N] ").lower()
+        if confirm == "y":
+            print(f"\n$ {command}")
+            output = run_command(command)
+            print(output)
+            session_history.append(f"USER: {command}\nOUTPUT: {output.strip()}")
+            session_history[:] = session_history[-MAX_HISTORY:]
 
 if __name__ == "__main__":
     main()
