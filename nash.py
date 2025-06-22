@@ -4,8 +4,10 @@ import subprocess
 import shlex
 from pathlib import Path
 import re
+import shutil
 from context_engine import build_prompt_with_context, index_files
 
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 HISTORY_FILE = Path.home() / ".nash_history"
 API_KEY = os.environ.get("LLAMA_API_KEY")
@@ -94,31 +96,38 @@ def suggest_fix(error_msg, user_input):
         return None
     return command
 
+def looks_like_shell_command(user_input):
+    try:
+        tokens = shlex.split(user_input)
+        if not tokens:
+            return False
+        return shutil.which(tokens[0]) is not None
+    except Exception:
+        return False
 
 def main():
     print("nash — context-aware shell assistant")
-    index_files()
 
     while True:
         try:
+            index_files()
             user_input = input("> ").strip()
             if user_input.lower() in {"exit", "quit"}:
                 break
 
-            messages = build_prompt_with_context(user_input)
-            raw_response = chat_completion(messages)
-            command = extract_command(raw_response)
+            if looks_like_shell_command(user_input):
+                command = user_input
+            else:
+                messages = build_prompt_with_context(user_input)
+                raw_response = chat_completion(messages)
+                command = extract_command(raw_response)
 
             if not is_command_safe(command):
                 print("Blocked unsafe command:")
                 print(command)
                 continue
 
-            print(f"Command: {command}")
-            confirm = input("Run this command? [y/N]: ").strip().lower()
-            if confirm != "y":
-                continue
-
+            print(f"Running: {command}")
             ret_code, stdout, stderr = run_command(command)
 
             if stdout:
@@ -126,13 +135,11 @@ def main():
             if stderr:
                 print(stderr)
 
-            if ret_code != 0:
+            if ret_code != 0 and not looks_like_shell_command(user_input):
                 fix = suggest_fix(stderr or "Unknown error", user_input)
                 if fix:
                     print(f"Suggested fix: {fix}")
-                    retry = input("Run suggested fix? [y/N]: ").strip().lower()
-                    if retry == "y":
-                        os.system(fix)
+                    os.system(fix)
 
             save_to_history(user_input, command)
 

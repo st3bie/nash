@@ -49,8 +49,6 @@ def index_files():
         except Exception as e:
             print(f"Failed to index {path}: {e}")
 
-    client.persist()
-
 
 def retrieve_context(query, top_k=3):
     """Query Chroma and return top-matching file chunks"""
